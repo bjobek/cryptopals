@@ -1,5 +1,7 @@
 #include "base64.h"
 
+#include <bitset>
+#include <string>
 base64::base64()
 {
     b64Table[0x00]='A';
@@ -69,20 +71,97 @@ base64::base64()
     b64Table[0x40]='='; // Padding
 }
 
-unsigned char *base64::parseData(unsigned char *carr,int len)
+void base64::parseData(std::vector<byte> & barr, uint len)
 {
+    std::vector<byte> tmpVect;
 
-    len % 3 ?
 
+    auto initIter=barr.begin();
 
-    for(int i = 0; i < len; ++i)
+    while (len>=3)
     {
+        unsigned long buffer=0b00000000000000000000000000000000;
+
+        //tmpVect.push_back(*initIter);
+
+
+        ++initIter;
+        //tmpVect.push_back(*initIter);
+
+        ++initIter;
+       // tmpVect.push_back(*initIter);
+        ++initIter;
+
+        len=len-3;
+        buffer = *(initIter-3);
+        buffer=(buffer<<8)| *(initIter-2);
+        buffer=(buffer<<8)| *(initIter-1);
+
+        std::bitset<24> bbuf(buffer);
+        std::string str = bbuf.to_string();
+        std::bitset<6>val1( str.substr(0,bbuf.size()-18));
+        std::bitset<6>val2( str.substr(6,bbuf.size()-12));
+        std::bitset<6>val3(str.substr(12,bbuf.size()-6));
+        std::bitset<6>val4(str.substr(18,bbuf.size()));
+
+
+        tmpVect.push_back(static_cast<byte>(val1.to_ulong()));
+        tmpVect.push_back(static_cast<byte>(val2.to_ulong()));
+        tmpVect.push_back(static_cast<byte>(val3.to_ulong()));
+        tmpVect.push_back( static_cast<byte>(val4.to_ulong()));
+
+//        val1.set(6,0);
+//        val1.set(7,0);
+
+
+//        val2.set(6,0);
+//        val2.set(7,0);
+
+
+//        val3.set(6,0);
+//        val3.set(7,0);
+
+
+//        val4.set(6,0);
+//        val4.set(7,0);
+
+        std::cout<<std::bitset<8>(tmpVect[0])<<" "<<std::bitset<8>(tmpVect[1])<<" "<<std::bitset<8>(tmpVect[2])<<" "<<std::bitset<8>(tmpVect[3])<<std::endl;
+    }
+    if(len==2)
+    {
+        tmpVect.push_back(0x40);
+        tmpVect.push_back(0x40);
+        len=len-2;
+    }
+    else if(len==1)
+    {
+        tmpVect.push_back(0x40);
+        len=len-1;
 
     }
+
+    barr=tmpVect;
+
+    for(auto &b : barr)
+    {
+        std::cout << std::bitset<8>(b)<<'\n';
+    }
+
 }
 
-void base64::encode()
+void base64::encode(std::vector<byte>& barr)
 {
+    std::vector<byte>tmpVect;
+
+    for(auto &b : barr)
+    {
+        byte tmp = b64Table.find(b)->second;
+        //tmpVect.push_back(tmp);
+        b=tmp;
+    }
+//    barr.begin()=tmpVect.begin();
+//    barr.end()=tmpVect.end();
+
 
 }
 
