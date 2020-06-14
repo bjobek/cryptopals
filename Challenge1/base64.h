@@ -7,7 +7,7 @@
 
 typedef unsigned char byte;
 
-#define padding 0x40;
+
 
 class base64
 {
@@ -15,14 +15,17 @@ private:
 
     std::vector<byte> bvect;
     std::vector<byte> sextets;
+    byte PADDING = 0x40;
 
 public:
     base64();
 
-    void parseData(std::vector<byte>&, uint len);
+
+    void parseData(std::vector<byte>&, unsigned int len);
     std::map <unsigned char,unsigned char>b64Table;
-    void encode(std::vector<byte>& barr);
+    int encode(std::string str,std::vector<byte>& barr);
     void decode();
+     int HexToBytes( std::string& ,std::vector<byte>& );
 
 };
 

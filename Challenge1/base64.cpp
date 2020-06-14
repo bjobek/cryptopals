@@ -71,7 +71,9 @@ base64::base64()
     b64Table[0x40]='='; // Padding
 }
 
-void base64::parseData(std::vector<byte> & barr, uint len)
+
+
+void base64::parseData(std::vector<byte> & barr, unsigned int len)
 {
     std::vector<byte> tmpVect;
 
@@ -89,9 +91,9 @@ void base64::parseData(std::vector<byte> & barr, uint len)
         //tmpVect.push_back(*initIter);
 
         ++initIter;
-       // tmpVect.push_back(*initIter);
+        // tmpVect.push_back(*initIter);
         ++initIter;
-
+       //std::cout<<"len is: "<<len<<std::endl;
         len=len-3;
         buffer = *(initIter-3);
         buffer=(buffer<<8)| *(initIter-2);
@@ -110,48 +112,117 @@ void base64::parseData(std::vector<byte> & barr, uint len)
         tmpVect.push_back(static_cast<byte>(val3.to_ulong()));
         tmpVect.push_back( static_cast<byte>(val4.to_ulong()));
 
-//        val1.set(6,0);
-//        val1.set(7,0);
+        //        val1.set(6,0);
+        //        val1.set(7,0);
 
 
-//        val2.set(6,0);
-//        val2.set(7,0);
+        //        val2.set(6,0);
+        //        val2.set(7,0);
 
 
-//        val3.set(6,0);
-//        val3.set(7,0);
+        //        val3.set(6,0);
+        //        val3.set(7,0);
 
 
-//        val4.set(6,0);
-//        val4.set(7,0);
-
-        std::cout<<std::bitset<8>(tmpVect[0])<<" "<<std::bitset<8>(tmpVect[1])<<" "<<std::bitset<8>(tmpVect[2])<<" "<<std::bitset<8>(tmpVect[3])<<std::endl;
+        //        val4.set(6,0);
+        //        val4.set(7,0);
+      //  std::cout<<"Conversion from 24 bit array to 4x6 bit arrays"<<std::endl;
+        //    std::cout<<std::bitset<8>(tmpVect[0])<<" "<<std::bitset<8>(tmpVect[1])<<" "<<std::bitset<8>(tmpVect[2])<<" "<<std::bitset<8>(tmpVect[3])<<std::endl;
     }
+    ////// PADDING /////////
     if(len==2)
     {
-        tmpVect.push_back(0x40);
-        tmpVect.push_back(0x40);
+
+
+
+        unsigned long buffer=0b00000000000000000000000000000000;
+
+        ++initIter;
+        ++initIter;
+
+       // std::cout<<"len is: "<<len<<std::endl;
         len=len-2;
+        buffer = *(initIter-2);
+        buffer=(buffer<<8)| *(initIter-1);
+
+
+        std::bitset<16> bbuf(buffer);
+        std::string str = bbuf.to_string();
+        std::bitset<6>val1( str.substr(0,6));
+        std::bitset<6>val2( str.substr(6,12));
+        std::bitset<6>val3(str.substr(12,16)); // casted as "xxxx00"
+        val3<<=2; // bitshift 2 to make LSB 00 for last sextet
+        //std::cout<<"val3: "<<val3<<std::endl;
+
+
+
+        tmpVect.push_back(static_cast<byte>(val1.to_ulong()));
+        tmpVect.push_back(static_cast<byte>(val2.to_ulong()));
+
+        tmpVect.push_back(static_cast<byte>(val3.to_ulong()));
+        tmpVect.push_back(PADDING);
+
+
+
+
+
     }
     else if(len==1)
     {
-        tmpVect.push_back(0x40);
+
+
+        unsigned long buffer=0b00000000000000000000000000000000;
+
+        ++initIter;
+        ++initIter;
+
+      //  std::cout<<"len is: "<<len<<std::endl;
         len=len-1;
+        buffer = *(initIter-1);
+
+
+
+        std::bitset<8> bbuf(buffer);
+        std::string str = bbuf.to_string();
+        std::bitset<6>val1( str.substr(0,6));
+        std::bitset<6>val2( str.substr(6,8));
+        // casted as "xx0000"
+        val2<<=4; // bitshift 4 to make LSB 0000 for last sextet
+        //std::cout<<"val3: "<<val3<<std::endl;
+
+
+
+        tmpVect.push_back(static_cast<byte>(val1.to_ulong()));
+        tmpVect.push_back(static_cast<byte>(val2.to_ulong()));
+
+        tmpVect.push_back(PADDING);
+        tmpVect.push_back(PADDING);
+
 
     }
 
     barr=tmpVect;
 
-    for(auto &b : barr)
-    {
-        std::cout << std::bitset<8>(b)<<'\n';
-    }
+//    for(auto &b : barr)
+//    {
+//        std::cout << std::bitset<8>(b)<<'\n';
+//    }
 
 }
 
-void base64::encode(std::vector<byte>& barr)
+int base64::encode(std::string str,std::vector<byte>& barr)
 {
-    std::vector<byte>tmpVect;
+    std::cout<<"Starting to encode data, received a "<<str.length()<<" character hex string"<<std::endl;
+
+
+    if(!HexToBytes(str,barr))
+    {std::cout<<"Error in converting hex string, not a multiple of 2"<<std::endl;
+        return 0;
+    }
+
+
+    parseData(barr,barr.size());
+    //std::vector<byte>tmpVect;
 
     for(auto &b : barr)
     {
@@ -159,8 +230,9 @@ void base64::encode(std::vector<byte>& barr)
         //tmpVect.push_back(tmp);
         b=tmp;
     }
-//    barr.begin()=tmpVect.begin();
-//    barr.end()=tmpVect.end();
+    return 1;
+    //    barr.begin()=tmpVect.begin();
+    //    barr.end()=tmpVect.end();
 
 
 }
@@ -168,4 +240,22 @@ void base64::encode(std::vector<byte>& barr)
 void base64::decode()
 {
 
+}
+
+int base64::HexToBytes( std::string& hex,std::vector<byte>& bytes)
+{
+
+    auto strLen=hex.size();
+    if((strLen%2) != 0)
+    {return 0;}
+    //original source:
+    //https://stackoverflow.com/questions/17261798/converting-a-hex-string-to-a-byte-array
+    //std::vector<byte> bytes;
+    for (unsigned int i = 0; i < hex.length(); i += 2) {
+        std::string byteString = hex.substr(i, 2);
+        char byte = (char) strtol(byteString.c_str(), NULL, 16);
+        bytes.push_back(byte);
+    }
+
+    return 1;
 }
